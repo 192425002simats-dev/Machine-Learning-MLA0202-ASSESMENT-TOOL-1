@@ -1,0 +1,50 @@
+import pandas as pd
+from google.colab import files
+print("Upload the data.csv file")
+uploaded = files.upload()
+df = pd.read_csv("data.csv")
+print("\n==============================")
+print("FIRST FIVE RECORDS")
+print("==============================")
+print(df.head())
+print("\n==============================")
+print("DATASET SHAPE")
+print("==============================")
+print(df.shape)
+print("\n==============================")
+print("COLUMN NAMES")
+print("==============================")
+print(df.columns)
+class_counts = df['diagnosis'].value_counts()
+print("\n==============================")
+print("CLASS COUNTS")
+print("==============================")
+print(class_counts)
+total_samples = len(df)
+prob_malignant = class_counts['M'] / total_samples
+prob_benign = class_counts['B'] / total_samples
+print("\n==============================")
+print("CLASS PROBABILITIES")
+print("==============================")
+print("Probability of Malignant (M):", round(prob_malignant,4))
+print("Probability of Benign (B):", round(prob_benign,4))
+print("\n==============================")
+print("CLASS PERCENTAGE")
+print("==============================")
+print("Malignant :", round(prob_malignant*100,2),"%")
+print("Benign    :", round(prob_benign*100,2),"%")
+print("\n==============================")
+print("PREDICTION")
+print("==============================")
+if prob_benign > prob_malignant:
+    prediction = "Benign (B)"
+else:
+    prediction = "Malignant (M)"
+
+print("Predicted Class for New Data Instance :", prediction)
+
+print("\n==============================")
+print("RESULT")
+print("==============================")
+print("The probabilities of Malignant and Benign classes were calculated successfully.")
+print("Since the probability of Benign is higher, the new data instance is predicted as", prediction)
