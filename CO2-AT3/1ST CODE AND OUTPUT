@@ -1,0 +1,259 @@
+print("SANJAY DHARAN V")
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from sklearn.ensemble import IsolationForest
+
+np.random.seed(42)
+
+n = 1000
+
+area = np.random.randint(500, 4000, n)
+bedrooms = np.random.randint(1, 6, n)
+bathrooms = np.random.randint(1, 5, n)
+age = np.random.randint(1, 40, n)
+parking = np.random.randint(0, 4, n)
+distance = np.random.uniform(1, 30, n)
+
+price = (
+    area * 120
+    + bedrooms * 25000
+    + bathrooms * 18000
+    - age * 3000
+    + parking * 12000
+    - distance * 5000
+    + np.random.normal(0, 50000, n)
+)
+
+outlier_index = np.random.choice(n, 20, replace=False)
+price[outlier_index] *= np.random.uniform(1.8, 3.0, 20)
+
+df = pd.DataFrame({
+    "Area": area,
+    "Bedrooms": bedrooms,
+    "Bathrooms": bathrooms,
+    "Age": age,
+    "Parking": parking,
+    "Distance": distance,
+    "Price": price
+})
+
+print("=" * 70)
+print("REAL ESTATE HOUSE PRICE PREDICTION")
+print("=" * 70)
+
+print("\nDataset Shape:")
+print(df.shape)
+
+print("\nFirst 5 Rows:")
+print(df.head())
+
+print("\nMissing Values:")
+print(df.isnull().sum())
+
+print("\nCorrelation Matrix:")
+print(df.corr().round(2))
+
+plt.figure(figsize=(8, 6))
+plt.imshow(df.corr(), cmap="coolwarm", interpolation="nearest")
+plt.colorbar()
+plt.xticks(range(len(df.columns)), df.columns, rotation=45)
+plt.yticks(range(len(df.columns)), df.columns)
+plt.title("Correlation Matrix")
+plt.tight_layout()
+plt.show()
+
+X = df.drop(columns=["Price"])
+y = df["Price"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.2,
+    random_state=42
+)
+
+model = LinearRegression()
+
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+mae_before = mean_absolute_error(y_test, y_pred)
+mse_before = mean_squared_error(y_test, y_pred)
+rmse_before = np.sqrt(mse_before)
+r2_before = r2_score(y_test, y_pred)
+
+print("\n" + "=" * 70)
+print("ORIGINAL MODEL")
+print("=" * 70)
+
+print("MAE :", round(mae_before, 2))
+print("MSE :", round(mse_before, 2))
+print("RMSE:", round(rmse_before, 2))
+print("R2  :", round(r2_before, 4))
+
+residuals = y_test - y_pred
+
+plt.figure(figsize=(8, 5))
+plt.scatter(y_pred, residuals)
+plt.axhline(0)
+plt.xlabel("Predicted Price")
+plt.ylabel("Residual")
+plt.title("Residual Analysis - Original Model")
+plt.show()
+
+plt.figure(figsize=(8, 5))
+plt.boxplot(df["Price"])
+plt.title("House Price Outlier Detection")
+plt.ylabel("Price")
+plt.show()
+
+Q1 = df["Price"].quantile(0.25)
+Q3 = df["Price"].quantile(0.75)
+
+IQR = Q3 - Q1
+
+lower_bound = Q1 - 1.5 * IQR
+upper_bound = Q3 + 1.5 * IQR
+
+df_clean = df[
+    (df["Price"] >= lower_bound) &
+    (df["Price"] <= upper_bound)
+].copy()
+
+print("\nOriginal Dataset Size:", len(df))
+print("After Outlier Removal:", len(df_clean))
+print("Outliers Removed:", len(df) - len(df_clean))
+
+df_clean["Area_per_Room"] = (
+    df_clean["Area"] /
+    df_clean["Bedrooms"]
+)
+
+df_clean["Price_Area_Ratio"] = (
+    df_clean["Area"] /
+    (df_clean["Distance"] + 1)
+)
+
+X_clean = df_clean.drop(columns=["Price"])
+y_clean = df_clean["Price"]
+
+X_train_clean, X_test_clean, y_train_clean, y_test_clean = train_test_split(
+    X_clean,
+    y_clean,
+    test_size=0.2,
+    random_state=42
+)
+
+scaler = StandardScaler()
+
+X_train_scaled = scaler.fit_transform(X_train_clean)
+X_test_scaled = scaler.transform(X_test_clean)
+
+optimized_model = LinearRegression()
+
+optimized_model.fit(
+    X_train_scaled,
+    y_train_clean
+)
+
+y_pred_optimized = optimized_model.predict(
+    X_test_scaled
+)
+
+mae_after = mean_absolute_error(
+    y_test_clean,
+    y_pred_optimized
+)
+
+mse_after = mean_squared_error(
+    y_test_clean,
+    y_pred_optimized
+)
+
+rmse_after = np.sqrt(mse_after)
+
+r2_after = r2_score(
+    y_test_clean,
+    y_pred_optimized
+)
+
+print("\n" + "=" * 70)
+print("OPTIMIZED MODEL")
+print("=" * 70)
+
+print("MAE :", round(mae_after, 2))
+print("MSE :", round(mse_after, 2))
+print("RMSE:", round(rmse_after, 2))
+print("R2  :", round(r2_after, 4))
+
+optimized_residuals = (
+    y_test_clean -
+    y_pred_optimized
+)
+
+plt.figure(figsize=(8, 5))
+plt.scatter(
+    y_pred_optimized,
+    optimized_residuals
+)
+plt.axhline(0)
+plt.xlabel("Predicted Price")
+plt.ylabel("Residual")
+plt.title("Residual Analysis - Optimized Model")
+plt.show()
+
+comparison = pd.DataFrame({
+    "Metric": [
+        "MAE",
+        "MSE",
+        "RMSE",
+        "R2 Score"
+    ],
+    "Before Optimization": [
+        mae_before,
+        mse_before,
+        rmse_before,
+        r2_before
+    ],
+    "After Optimization": [
+        mae_after,
+        mse_after,
+        rmse_after,
+        r2_after
+    ]
+})
+
+print("\n" + "=" * 70)
+print("MODEL PERFORMANCE COMPARISON")
+print("=" * 70)
+
+print(comparison.round(4).to_string(index=False))
+
+comparison.set_index("Metric").plot(
+    kind="bar",
+    figsize=(10, 6)
+)
+
+plt.title("Before vs After Optimization")
+plt.ylabel("Score")
+plt.xticks(rotation=0)
+plt.grid(axis="y", alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+print("\n" + "=" * 70)
+print("OPTIMIZATION COMPLETED")
+print("=" * 70)
+
+print("Outliers removed:", len(df) - len(df_clean))
+print("Feature scaling applied: Yes")
+print("Feature engineering applied: Yes")
+print("Model: Linear Regression")
+print("Evaluation metrics: MAE, MSE, RMSE, R2")
