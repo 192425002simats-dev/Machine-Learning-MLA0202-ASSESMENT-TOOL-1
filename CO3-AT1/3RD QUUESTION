@@ -1,0 +1,230 @@
+print("SANJAY DHARAN V")
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.datasets import load_wine
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.decomposition import FactorAnalysis
+from sklearn.decomposition import FastICA
+
+wine = load_wine()
+
+X = wine.data
+y = wine.target
+
+feature_names = wine.feature_names
+target_names = wine.target_names
+
+print("WINE DATASET")
+print("Number of Samples:", X.shape[0])
+print("Number of Features:", X.shape[1])
+
+scaler = StandardScaler()
+
+X_scaled = scaler.fit_transform(X)
+
+print("\nSTANDARDIZED DATA")
+print("Mean:", np.round(X_scaled.mean(axis=0), 4))
+print("Standard Deviation:", np.round(X_scaled.std(axis=0), 4))
+
+pca = PCA(n_components=2)
+
+X_pca = pca.fit_transform(X_scaled)
+
+fa = FactorAnalysis(
+    n_components=2,
+    random_state=42
+)
+
+X_fa = fa.fit_transform(X_scaled)
+
+ica = FastICA(
+    n_components=2,
+    random_state=42,
+    max_iter=2000,
+    tol=0.01
+)
+
+X_ica = ica.fit_transform(X_scaled)
+
+print("\nPCA EXPLAINED VARIANCE")
+
+print(
+    "PC1:",
+    round(pca.explained_variance_ratio_[0], 4)
+)
+
+print(
+    "PC2:",
+    round(pca.explained_variance_ratio_[1], 4)
+)
+
+print(
+    "Total Explained Variance:",
+    round(
+        pca.explained_variance_ratio_.sum(),
+        4
+    )
+)
+
+print("\nPCA COMPONENTS")
+
+pca_components = pd.DataFrame(
+    pca.components_,
+    columns=feature_names,
+    index=["PC1", "PC2"]
+)
+
+print(pca_components)
+
+print("\nFA COMPONENTS")
+
+fa_components = pd.DataFrame(
+    fa.components_,
+    columns=feature_names,
+    index=["Factor1", "Factor2"]
+)
+
+print(fa_components)
+
+print("\nICA COMPONENTS")
+
+ica_components = pd.DataFrame(
+    ica.components_,
+    columns=feature_names,
+    index=["IC1", "IC2"]
+)
+
+print(ica_components)
+
+plt.figure(figsize=(10, 7))
+
+for class_value in np.unique(y):
+
+    data = X_pca[y == class_value]
+
+    plt.scatter(
+        data[:, 0],
+        data[:, 1],
+        s=50,
+        label=target_names[class_value]
+    )
+
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.title("Wine Dataset - PCA")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+plt.figure(figsize=(10, 7))
+
+for class_value in np.unique(y):
+
+    data = X_fa[y == class_value]
+
+    plt.scatter(
+        data[:, 0],
+        data[:, 1],
+        s=50,
+        label=target_names[class_value]
+    )
+
+plt.xlabel("Factor 1")
+plt.ylabel("Factor 2")
+plt.title("Wine Dataset - Factor Analysis")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+plt.figure(figsize=(10, 7))
+
+for class_value in np.unique(y):
+
+    data = X_ica[y == class_value]
+
+    plt.scatter(
+        data[:, 0],
+        data[:, 1],
+        s=50,
+        label=target_names[class_value]
+    )
+
+plt.xlabel("Independent Component 1")
+plt.ylabel("Independent Component 2")
+plt.title("Wine Dataset - ICA")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+methods = [
+    "PCA",
+    "Factor Analysis",
+    "ICA"
+]
+
+dimensions = [
+    X_pca.shape[1],
+    X_fa.shape[1],
+    X_ica.shape[1]
+]
+
+plt.figure(figsize=(8, 5))
+
+plt.bar(
+    methods,
+    dimensions
+)
+
+plt.xlabel("Dimensionality Reduction Method")
+plt.ylabel("Number of Components")
+plt.title("Reduced Dimensions")
+plt.grid(axis="y")
+plt.show()
+
+print("\nCOMPARISON")
+
+print(
+    "Original dimensions:",
+    X.shape[1]
+)
+
+print(
+    "PCA dimensions:",
+    X_pca.shape[1]
+)
+
+print(
+    "Factor Analysis dimensions:",
+    X_fa.shape[1]
+)
+
+print(
+    "ICA dimensions:",
+    X_ica.shape[1]
+)
+
+print("\nCONCLUSION")
+
+print(
+    "PCA finds directions of maximum variance and is useful "
+    "for compact representation and visualization."
+)
+
+print(
+    "Factor Analysis identifies latent factors that explain "
+    "correlations among observed variables."
+)
+
+print(
+    "ICA finds statistically independent components and can "
+    "separate underlying independent sources."
+)
+
+print(
+    "All three techniques reduce the number of dimensions, "
+    "which reduces computational complexity and helps address "
+    "the Curse of Dimensionality."
+)
