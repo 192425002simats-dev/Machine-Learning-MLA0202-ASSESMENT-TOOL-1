@@ -1,0 +1,128 @@
+print("SANJAYDHARAN V")
+import numpy as np
+import matplotlib.pyplot as plt
+
+NUM_ADS = 5
+NUM_INTERACTIONS = 10000
+
+TRUE_CLICK_PROBABILITIES = [0.05, 0.08, 0.12, 0.07, 0.10]
+
+counts = np.zeros(NUM_ADS)
+rewards = np.zeros(NUM_ADS)
+
+total_rewards = []
+cumulative_regret = []
+
+best_probability = max(TRUE_CLICK_PROBABILITIES)
+
+for t in range(1, NUM_INTERACTIONS + 1):
+
+    if t <= NUM_ADS:
+        ad = t - 1
+
+    else:
+        ucb_values = []
+
+        for i in range(NUM_ADS):
+
+            estimated_ctr = rewards[i] / counts[i]
+
+            confidence = np.sqrt(
+                (2 * np.log(t)) / counts[i]
+            )
+
+            ucb = estimated_ctr + confidence
+
+            ucb_values.append(ucb)
+
+        ad = np.argmax(ucb_values)
+
+    click = np.random.random() < TRUE_CLICK_PROBABILITIES[ad]
+
+    if click:
+        reward = 1
+    else:
+        reward = 0
+
+    counts[ad] += 1
+    rewards[ad] += reward
+
+    total_rewards.append(reward)
+
+    regret = best_probability - TRUE_CLICK_PROBABILITIES[ad]
+    cumulative_regret.append(regret)
+
+
+cumulative_rewards = np.cumsum(total_rewards)
+cumulative_regret = np.cumsum(cumulative_regret)
+
+estimated_ctr = rewards / counts
+
+print("=" * 50)
+print("MULTI-ARMED BANDIT - ONLINE ADVERTISEMENT")
+print("=" * 50)
+
+print("\nAdvertisement Results")
+print("-" * 50)
+
+for i in range(NUM_ADS):
+
+    print(
+        f"Ad {i + 1}: "
+        f"Displays = {int(counts[i])}, "
+        f"Clicks = {int(rewards[i])}, "
+        f"Estimated CTR = {estimated_ctr[i]:.4f}, "
+        f"True CTR = {TRUE_CLICK_PROBABILITIES[i]:.2f}"
+    )
+
+best_ad = np.argmax(estimated_ctr)
+
+print("\n" + "=" * 50)
+print("FINAL RESULTS")
+print("=" * 50)
+
+print("Best Advertisement:", best_ad + 1)
+print("Estimated CTR:", round(estimated_ctr[best_ad], 4))
+print("Total Clicks:", int(sum(rewards)))
+print("Total Interactions:", NUM_INTERACTIONS)
+print("Final Cumulative Regret:", round(cumulative_regret[-1], 2))
+
+print("\nAdvertisement Selection:")
+for i in range(NUM_ADS):
+    percentage = (counts[i] / NUM_INTERACTIONS) * 100
+    print(
+        f"Ad {i + 1}: "
+        f"{int(counts[i])} times "
+        f"({percentage:.2f}%)"
+    )
+
+
+plt.figure(figsize=(10, 5))
+plt.plot(cumulative_rewards)
+plt.xlabel("Interactions")
+plt.ylabel("Cumulative Clicks")
+plt.title("UCB - Cumulative Rewards")
+plt.grid(True)
+plt.show()
+
+
+plt.figure(figsize=(10, 5))
+plt.plot(cumulative_regret)
+plt.xlabel("Interactions")
+plt.ylabel("Cumulative Regret")
+plt.title("UCB - Cumulative Regret")
+plt.grid(True)
+plt.show()
+
+
+plt.figure(figsize=(8, 5))
+plt.bar(
+    range(1, NUM_ADS + 1),
+    estimated_ctr
+)
+plt.xlabel("Advertisement")
+plt.ylabel("Estimated CTR")
+plt.title("Estimated CTR of Advertisements")
+plt.xticks(range(1, NUM_ADS + 1))
+plt.grid(axis="y")
+plt.show()
