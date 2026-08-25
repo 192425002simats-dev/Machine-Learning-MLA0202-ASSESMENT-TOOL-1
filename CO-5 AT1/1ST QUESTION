@@ -1,0 +1,297 @@
+print("SANJAYDHARAN V")
+import random
+
+ROWS = 6
+COLS = 6
+
+START = (0, 0)
+GOAL = (5, 5)
+
+OBSTACLES = {
+    (0, 2),
+    (1, 2),
+    (2, 2),
+    (3, 4),
+    (4, 4),
+    (4, 1)
+}
+
+ACTIONS = {
+    "U": (-1, 0),
+    "D": (1, 0),
+    "L": (0, -1),
+    "R": (0, 1)
+}
+
+MAX_MOVES = 25
+BATTERY = 30
+GAMMA = 0.9
+EPSILON = 0.1
+
+
+def valid(pos):
+    r, c = pos
+    return (
+        0 <= r < ROWS and
+        0 <= c < COLS and
+        pos not in OBSTACLES
+    )
+
+
+def move(pos, action):
+    r, c = pos
+    dr, dc = ACTIONS[action]
+
+    new_pos = (r + dr, c + dc)
+
+    if valid(new_pos):
+        return new_pos
+
+    return pos
+
+
+def get_transitions(pos, action):
+    intended = move(pos, action)
+
+    alternatives = []
+
+    for a in ACTIONS:
+        if a != action:
+            alternatives.append(move(pos, a))
+
+    return [
+        (intended, 0.8),
+        (alternatives[0], 0.1),
+        (alternatives[1], 0.1)
+    ]
+
+
+def get_reward(pos, next_pos):
+
+    if next_pos == GOAL:
+        return 100
+
+    if next_pos == pos:
+        return -10
+
+    return -1
+
+
+states = []
+
+for r in range(ROWS):
+    for c in range(COLS):
+        if (r, c) not in OBSTACLES:
+            states.append((r, c))
+
+
+V = {state: 0 for state in states}
+policy = {state: "R" for state in states}
+
+
+for iteration in range(1000):
+
+    new_V = {}
+
+    for state in states:
+
+        if state == GOAL:
+            new_V[state] = 0
+            policy[state] = "G"
+            continue
+
+        best_value = -float("inf")
+        best_action = None
+
+        for action in ACTIONS:
+
+            value = 0
+
+            for next_pos, probability in get_transitions(state, action):
+
+                reward = get_reward(state, next_pos)
+
+                future = V.get(next_pos, 0)
+
+                value += probability * (
+                    reward + GAMMA * future
+                )
+
+            if value > best_value:
+                best_value = value
+                best_action = action
+
+        new_V[state] = best_value
+        policy[state] = best_action
+
+    difference = max(
+        abs(new_V[s] - V[s])
+        for s in states
+    )
+
+    V = new_V
+
+    if difference < 0.001:
+        break
+
+
+print("VALUE ITERATION COMPLETED")
+print("Iterations:", iteration + 1)
+
+
+def show_policy():
+
+    print("\nOPTIMAL POLICY")
+    print("----------------")
+
+    for r in range(ROWS):
+
+        row = ""
+
+        for c in range(COLS):
+
+            pos = (r, c)
+
+            if pos == START:
+                symbol = "S"
+
+            elif pos == GOAL:
+                symbol = "G"
+
+            elif pos in OBSTACLES:
+                symbol = "#"
+
+            else:
+                symbol = policy[pos]
+
+            row += f"{symbol:^4}"
+
+        print(row)
+
+
+show_policy()
+
+
+def display_grid(robot):
+
+    print("\nWAREHOUSE GRID")
+    print("----------------")
+
+    for r in range(ROWS):
+
+        row = ""
+
+        for c in range(COLS):
+
+            pos = (r, c)
+
+            if pos == robot:
+                symbol = "R"
+
+            elif pos == START:
+                symbol = "S"
+
+            elif pos == GOAL:
+                symbol = "G"
+
+            elif pos in OBSTACLES:
+                symbol = "#"
+
+            else:
+                symbol = "."
+
+            row += f"{symbol:^4}"
+
+        print(row)
+
+
+def choose_action(state):
+
+    if random.random() < EPSILON:
+        return random.choice(list(ACTIONS.keys()))
+
+    return policy[state]
+
+
+def simulate():
+
+    position = START
+    moves = 0
+    battery = BATTERY
+    total_reward = 0
+
+    path = [position]
+
+    print("\nROBOT SIMULATION")
+    print("----------------")
+
+    display_grid(position)
+
+    while (
+        position != GOAL
+        and moves < MAX_MOVES
+        and battery > 0
+    ):
+
+        state = position
+
+        action = choose_action(state)
+
+        transitions = get_transitions(
+            position,
+            action
+        )
+
+        random_number = random.random()
+
+        if random_number < 0.8:
+            next_position = transitions[0][0]
+
+        elif random_number < 0.9:
+            next_position = transitions[1][0]
+
+        else:
+            next_position = transitions[2][0]
+
+        reward = get_reward(
+            position,
+            next_position
+        )
+
+        position = next_position
+        moves += 1
+        battery -= 1
+        total_reward += reward
+
+        path.append(position)
+
+        print(
+            f"Move {moves}: "
+            f"{action} -> {position} "
+            f"| Battery = {battery} "
+            f"| Reward = {reward}"
+        )
+
+    print("\n==============================")
+    print("FINAL RESULT")
+    print("==============================")
+
+    if position == GOAL:
+        print("Status: SUCCESS")
+        print("Destination reached!")
+    else:
+        print("Status: FAILED")
+        print("Destination not reached.")
+
+    print("Moves Used:", moves)
+    print("Battery Remaining:", battery)
+    print("Total Reward:", total_reward)
+
+    print("\nPath:")
+    print(" -> ".join(str(p) for p in path))
+
+    print("\nFinal Grid:")
+    display_grid(position)
+
+
+simulate()
